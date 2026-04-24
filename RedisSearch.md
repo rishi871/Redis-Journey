@@ -1,4 +1,4 @@
-# RediSearch Distributed Cluster Mode 
+# RediSearch 
 This document provides a complete walkthrough of RediSearch in Distributed Cluster Mode using the OSS coordinator, covering the entire lifecycle from index creation through query execution to result return, including document change handling.
 
 ---
