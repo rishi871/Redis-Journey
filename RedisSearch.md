@@ -74,12 +74,12 @@ sequenceDiagram
 
 ### Key Implementation Details
 
-**File**: `src/module.c:CreateIndexCommand()` (line 580)
+
 - Entry point for `FT.CREATE` command
 - Parses schema definition and validates field types
 - Creates `IndexSpec` structure with field specifications
 
-**File**: `src/spec.c:IndexSpec_CreateNew()`
+
 - Creates the index specification with schema rules
 - Initializes data structures:
   - **Inverted Index**: For TEXT fields (term → document mappings)
@@ -87,7 +87,7 @@ sequenceDiagram
   - **Tag Index**: For TAG fields (trie-based exact matching)
   - **DocTable**: Maps document keys to internal document IDs
 
-**File**: `src/module.c:FanoutCommandHandlerIndexless()` (line 3528)
+
 - Distributes the `FT.CREATE` command to all shards
 - Uses `MR_Fanout()` to send identical command to each shard
 - Waits for all shards to respond before returning to client
@@ -200,7 +200,6 @@ sequenceDiagram
 
 #### Update Process Details
 
-**File**: `src/indexer.c:makeDocumentId()` (line 136)
 - If `replace=true`, calls `DocTable_PopR()` to get existing document metadata
 - Decrements index statistics for old document
 - Removes old entries from vector and geometry indexes if present
@@ -259,7 +258,7 @@ sequenceDiagram
 
 #### Deletion Process Details
 
-**File**: `src/notifications.c:KeyspaceNotification()` (line 184)
+
 - `del_cmd` case calls `Indexes_DeleteMatchingWithSchemaRules()`
 
 **File**: `src/spec.c:Indexes_DeleteMatchingWithSchemaRules()` (line 3988)
@@ -310,10 +309,7 @@ sequenceDiagram
 
 #### Expiration Details
 
-**File**: `src/ttl_table/ttl_table.c`
-- Tracks document and field-level expiration times
-- `TimeToLiveTable_HasDocExpired()` checks if document expired (line 77)
-- `TimeToLiveTable_VerifyDocAndFieldMask()` validates field expiration (line 122)
+
 
 **Field-Level Expiration**: RediSearch supports per-field TTL:
 - Hash fields can have individual expiration times
@@ -447,7 +443,7 @@ QueryNode {
 
 #### Phase 2: Query Distribution
 
-**File**: `src/coord/dist_aggregate.c:buildMRCommand()` (line 89)
+
 
 The coordinator prepares the query for distribution:
 
@@ -474,7 +470,7 @@ Each shard executes the query independently against its local index:
 - Same parsing logic as coordinator
 - Creates identical AST
 
-**Step 2: Create Iterators** (`src/query.c:QAST_Iterate()` line 1557)
+**Step 2: Create Iterators** 
 
 The AST is converted to an iterator tree:
 
@@ -495,7 +491,7 @@ IntersectIterator {
 
 **Step 3: Score Results**
 
-**File**: `src/result_processor.c:RPScorer`
+
 
 Each matching document is scored using:
 - **BM25** (default): `score = IDF(term) * (TF * (k1 + 1)) / (TF + k1 * (1 - b + b * docLen/avgDocLen))`
@@ -511,16 +507,16 @@ Each matching document is scored using:
 
 #### Phase 4: Result Aggregation at Coordinator
 
-**File**: `src/coord/rpnet.c:rpnetNext()` (line 492)
+
 
 The coordinator aggregates results from all shards:
 
-**Step 1: Collect Results** (`src/coord/rmr/rmr.c:MRIterator_Next()` line 891)
+**Step 1: Collect Results** 
 - `MRIterator` pulls results from channel
 - Channel is populated by async callbacks from shards
 - Results arrive in arbitrary order
 
-**Step 2: Merge and Sort** (`src/result_processor.c:RPSorter` line 727)
+**Step 2: Merge and Sort** 
 - Uses **min-max heap** for efficient top-K selection
 - Compares results by score (or custom sort fields)
 - Maintains only top results (memory efficient)
@@ -536,7 +532,7 @@ The coordinator aggregates results from all shards:
 
 #### Phase 5: Response to Client
 
-**File**: `src/module.c:DistSearchCommand()`
+
 
 The coordinator formats the final response:
 
@@ -640,7 +636,7 @@ sequenceDiagram
 
 ### Pipeline Distribution Details
 
-**File**: `src/coord/dist_plan.cpp:AGGPLN_Distribute()` (line 367)
+
 
 The distribution planner splits the aggregation pipeline:
 
@@ -671,7 +667,6 @@ The distribution planner splits the aggregation pipeline:
 
 ### GROUP BY Distribution
 
-**File**: `src/coord/dist_plan.cpp:distributeGroupStep()` (line 108)
 
 GROUP BY operations are distributed as follows:
 
@@ -688,7 +683,7 @@ Local:    GROUPBY @category REDUCE SUM @shard_count AS total
 
 ### SORTBY Distribution
 
-**File**: `src/coord/dist_plan.cpp:AGGPLN_Distribute()` (line 449)
+
 
 - **If SORTBY appears before GROUPBY**: Pushed to shards (each shard sorts locally)
 - **If SORTBY appears after GROUPBY**: Runs only on coordinator (global sort)
@@ -701,7 +696,7 @@ In our example, `SORTBY @total DESC` runs on coordinator after aggregating count
 
 ### 5.1 Topology Discovery
 
-**File**: `src/coord/rmr/redis_cluster.c:RedisCluster_GetTopology()` (line 135)
+
 
 ```mermaid
 sequenceDiagram
@@ -814,7 +809,7 @@ sequenceDiagram
     NewShard-->>Coord: Results from new shard's documents
 ```
 
-**Connection Pool Management** (`src/coord/rmr/conn.c:MRConnManager_Add()` line 278):
+**Connection Pool Management** 
 - Creates connection pool with configurable size (default: 10)
 - Connections are established asynchronously
 - Round-robin selection for load balancing
@@ -859,8 +854,6 @@ sequenceDiagram
 ---
 
 ### 5.4 In-Flight Query Handling
-
-**File**: `src/coord/rmr/rmr.c:MRIterator` and `src/result_processor.c:validateDmdSlot()`
 
 ```mermaid
 sequenceDiagram
@@ -949,32 +942,4 @@ This walkthrough covered the complete lifecycle of RediSearch in Distributed Clu
 - **MRCluster**: Cluster topology with shard endpoints and slot ranges
 - **QueryAST**: Abstract syntax tree for parsed queries
 - **Result Processors**: Chain of processors (iterator → scorer → sorter → loader → network)
-
-### Key Files Reference
-
-**Core Module**:
-- `src/module.c`: Command handlers, fanout logic
-- `src/spec.c`: Index specification management
-- `src/indexer.c`: Document indexing pipeline
-- `src/notifications.c`: Keyspace notification handling
-
-**Coordinator**:
-- `src/coord/rmr/redis_cluster.c`: Topology discovery
-- `src/coord/rmr/rmr.c`: Fanout and result iteration
-- `src/coord/rmr/conn.c`: Connection pool management
-- `src/coord/dist_aggregate.c`: Distributed aggregation
-- `src/coord/dist_plan.cpp`: Pipeline distribution
-- `src/coord/rpnet.c`: Network result processor
-
-**Query Processing**:
-- `src/query.c`: Query parsing and iterator creation
-- `src/result_processor.c`: Result processing chain
-- `src/gc.c`: Garbage collection
-- `src/redisearch_rs/inverted_index/src/lib.rs`: Rust inverted index implementation
-
----
-
-**Document Version**: 1.0
-**Last Updated**: 2026-02-06
-**RediSearch Version**: Based on current codebase (C-to-Rust migration in progress)
 
