@@ -142,11 +142,11 @@ slot = CRC16("product:123") % 16384
 - Finds all indexes matching the key prefix
 - Checks if `product:` matches the index's `PREFIX` rule
 
-**File**: `src/indexer.c:IndexDocument()` (line 424)
-- Assigns document ID via `DocTable_Put()` (line 173)
-- Indexes TEXT fields → inverted index (`writeCurEntries()` at line 102)
-- Indexes NUMERIC fields → numeric range tree (`numericIndexer()` in `src/document.c:799`)
-- Indexes TAG fields → tag trie (`tagIndexer()` in `src/document.c:760`)
+**File**:
+- Assigns document ID via `DocTable_Put()` 
+- Indexes TEXT fields → inverted index 
+- Indexes NUMERIC fields → numeric range tree
+- Indexes TAG fields → tag trie
 
 **Data Structures Updated**:
 1. **DocTable** (`src/doc_table.c`): Maps `product:123` → `docId=42`
